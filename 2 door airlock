@@ -32,20 +32,15 @@ lbn IntAirlockSetting Airlock IntAirlock Setting 1
 lbn ExtAirlockSetting Airlock ExtAirlock Setting 1
 lbn IntAirlockOpenState Airlock IntAirlock Open 1
 lbn ExtAirlockOpenState Airlock ExtAirlock Open 1
-breq IntAirlockOpenState IntAirlockSetting 5
-breq IntAirlock 1 4 #if intairlock is open then your moving out
-breq ExtAirlock 1 2 #if extairlock is
-move MoveIn1Out0 1
-j ra
-move MoveIn1Out0 0 #set moving out
-j ra
-beq ExtAirlockOpenState ExtAirlockSetting ra
-breq IntAirlock 1 4 #if intairlock is open then your moving out
-breq ExtAirlock 1 2 #if extairlock is open then your moving in
-move MoveIn1Out0 1 #set moving in
-j ra
-move MoveIn1Out0 0 #set moving out
-j ra
+breq IntAirlockOpenState IntAirlockSetting 3 #check which door was activated
+breq ExtAirlockOpenState ExtAirlockSetting 5 #check which door was activated
+#moving in or out 
+breq IntAirlockOpenState 0 2 #if interior airlock is closed jump to movetointerior
+j movetoexterior
+j movetointerior
+breq ExtAirlockOpenState 0 2 #if Ext airlock is closed jump to movetoexterior 
+j movetointerior
+j movetoexterior
 
 #depressurizeext:
 #depressurizeint:
@@ -60,6 +55,7 @@ yield
 #jal depressurizeext
 #jal pressurizeintOpen 1
 sbn Airlock IntAirlock Open 1
+sbn Airlock IntAirlock Setting 1
 move MoveIn1Out0 2
 j ra
 
@@ -70,5 +66,6 @@ yield
 #jal depressurizeint
 #jal pressurizeext
 sbn Airlock ExtAirlock Open 1
+sbn Airlock ExtAirlock Setting 1
 move MoveIn1Out0 2
 j ra
