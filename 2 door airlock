@@ -1,0 +1,74 @@
+define Airlock HASH("StructureAirlock")
+define IntAirlock HASH("Int Airlock")
+define ExtAirlock HASH("Ext Airlock")
+
+define Sensor HASH("StructureGasSensor")
+
+define Vent HASH("StructureActiveVent")
+define IntVent HASH("Int Vent")
+define ExtVent HASH("Ext Vent")
+
+alias IntAirlockOpenState r3
+alias ExtAirlockOpenState r4
+alias IntAirlockSetting r5
+alias ExtAirlockSetting r6
+alias MoveIn1Out0 r7
+
+init:
+sb Airlock Mode 1
+sb Airlock Lock 0
+move MoveIn1Out0 2
+
+main:
+jal doorcheck
+beq MoveIn1Out0 1 movetointerior
+beq MoveIn1Out0 0 movetoexterior
+j main
+
+doorcheck:
+lb r0 Airlock Setting 1
+beq r0 1 main
+lbn IntAirlockSetting Airlock IntAirlock Setting 1
+lbn ExtAirlockSetting Airlock ExtAirlock Setting 1
+lbn IntAirlockOpenState Airlock IntAirlock Open 1
+lbn ExtAirlockOpenState Airlock ExtAirlock Open 1
+breq IntAirlockOpenState IntAirlockSetting 5
+breq IntAirlock 1 4 #if intairlock is open then your moving out
+breq ExtAirlock 1 2 #if extairlock is
+move MoveIn1Out0 1
+j ra
+move MoveIn1Out0 0 #set moving out
+j ra
+beq ExtAirlockOpenState ExtAirlockSetting ra
+breq IntAirlock 1 4 #if intairlock is open then your moving out
+breq ExtAirlock 1 2 #if extairlock is open then your moving in
+move MoveIn1Out0 1 #set moving in
+j ra
+move MoveIn1Out0 0 #set moving out
+j ra
+
+#depressurizeext:
+#depressurizeint:
+
+#pressurizeext:
+#pressurizeint:
+
+movetointerior:
+sbn Airlock ExtAirlock Open 0
+sbn Airlock ExtAirlock Setting 0
+yield
+#jal depressurizeext
+#jal pressurizeintOpen 1
+sbn Airlock IntAirlock Open 1
+move MoveIn1Out0 2
+j ra
+
+movetoexterior:
+sbn Airlock IntAirlock Open 0
+sbn Airlock IntAirlock Setting 0
+yield
+#jal depressurizeint
+#jal pressurizeext
+sbn Airlock ExtAirlock Open 1
+move MoveIn1Out0 2
+j ra
