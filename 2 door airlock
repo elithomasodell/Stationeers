@@ -17,6 +17,7 @@ alias MoveIn1Out0 r7
 init:
 sb Airlock Mode 1
 sb Airlock Lock 0
+sb Vent Lock 1
 move MoveIn1Out0 2
 
 main:
