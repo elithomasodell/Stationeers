@@ -1,1 +1,104 @@
+define Airlock HASH("StructureAirlock")
+define IntAirlock HASH("Int Airlock")
+define ExtAirlock HASH("Ext Airlock")
 
+define Sensor HASH("StructureGasSensor")
+
+
+define Vent HASH("StructureActiveVent")
+define IntVent HASH("Int Vent")
+define ExtVent HASH("Ext Vent")
+
+alias IntAirlockOpenState r3
+alias ExtAirlockOpenState r4
+alias IntAirlockSetting r5
+alias ExtAirlockSetting r6
+alias MoveIn1Out0 r7
+alias RoomPressure r8
+alias IntRoomPressureSetting r9
+move IntRoomPressureSetting 3 #move to Int pressure setting
+alias ExtRoomPressureSetting r10
+move ExtRoomPressureSetting 2 #move to Ext pressure setting
+
+init:
+sb Airlock Mode 1
+sb Airlock Lock 0
+sb Vent Lock 0
+move MoveIn1Out0 2
+
+main:
+jal doorcheck
+beq MoveIn1Out0 1 movetointerior
+beq MoveIn1Out0 0 movetoexterior
+j main
+
+doorcheck:
+lb r0 Airlock Setting 1
+beq r0 1 main
+lbn IntAirlockSetting Airlock IntAirlock Setting 1
+lbn ExtAirlockSetting Airlock ExtAirlock Setting 1
+lbn IntAirlockOpenState Airlock IntAirlock Open 1
+lbn ExtAirlockOpenState Airlock ExtAirlock Open 1
+breq IntAirlockOpenState IntAirlockSetting 3 #check which door was activated
+breq ExtAirlockOpenState ExtAirlockSetting 5 #check which door was activated
+#moving in or out
+breq IntAirlockOpenState 0 2 #if interior airlock is closed jump to movetointerior
+j movetoexterior
+j movetointerior
+breq ExtAirlockOpenState 0 2 #if Ext airlock is closed jump to movetoexterior
+j movetointerior
+j movetoexterior
+
+depressurizetoext:
+sbn Vent ExtVent Mode 1
+sbn Vent ExtVent On 1
+lb RoomPressure Sensor Pressure 1
+bne RoomPressure 0 depressurizetoext
+sbn Vent ExtVent On 0
+j ra
+
+depressurizetoint:
+sbn Vent IntVent Mode 1
+sbn Vent IntVent On 1
+lb RoomPressure Sensor Pressure 1
+bne RoomPressure 0 depressurizetoint
+sbn Vent IntVent On 0
+j ra
+
+pressurizefromext:
+sbn Vent ExtVent Mode 0
+sbn Vent ExtVent On 1
+lb RoomPressure Sensor Pressure 1
+ble RoomPressure ExtRoomPressureSetting pressurizefromext
+sbn Vent ExtVent On 0
+j ra
+
+pressurizefromint:
+sbn Vent IntVent Mode 0
+sbn Vent IntVent On 1
+lb RoomPressure Sensor Pressure 1
+ble RoomPressure IntRoomPressureSetting pressurizefromint
+sbn Vent IntVent On 0
+j ra
+
+movetointerior:
+sbn Airlock ExtAirlock Open 0
+sbn Airlock ExtAirlock Setting 0
+yield
+jal depressurizetoext
+jal pressurizefromint
+sbn Airlock IntAirlock Open 1
+sbn Airlock IntAirlock Setting 1
+move MoveIn1Out0 2
+j main
+
+movetoexterior:
+sbn Airlock IntAirlock Open 0
+sbn Airlock IntAirlock Setting 0
+yield
+jal depressurizetoint
+jal pressurizefromext
+sbn Airlock ExtAirlock Open 1
+sbn Airlock ExtAirlock Setting 1
+move MoveIn1Out0 2
+j main
